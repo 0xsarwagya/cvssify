@@ -12,7 +12,10 @@ import {
 } from "./models.ts";
 import { validate } from "./validator.ts";
 
-// https://www.first.org/cvss/v3.1/specification-document#7-4-Metric-Values
+/**
+ * Represents the scores for each base metric value in the CVSS score calculator.
+ * @see https://www.first.org/cvss/v3.1/specification-document#7-4-Metric-Values
+ */
 const baseMetricValueScores: Record<
 	BaseMetric,
 	Partial<Record<BaseMetricValue, number>> | null
@@ -27,6 +30,9 @@ const baseMetricValueScores: Record<
 	[BaseMetric.AVAILABILITY]: { N: 0, L: 0.22, H: 0.56 },
 };
 
+/**
+ * Represents the scores for different temporal metrics.
+ */
 const temporalMetricValueScores: Record<
 	TemporalMetric,
 	Partial<Record<TemporalMetricValue, number>> | null
@@ -42,6 +48,11 @@ const temporalMetricValueScores: Record<
 	[TemporalMetric.REPORT_CONFIDENCE]: { X: 1, U: 0.92, R: 0.96, C: 1 },
 };
 
+/**
+ * Object that represents the scores for each environmental metric value.
+ * @typeParam EnvironmentalMetric - The type of environmental metric.
+ * @typeParam EnvironmentalMetricValue - The type of environmental metric value.
+ */
 const environmentalMetricValueScores: Record<
 	EnvironmentalMetric,
 	Partial<Record<EnvironmentalMetricValue, number>> | null
@@ -75,6 +86,14 @@ const environmentalMetricValueScores: Record<
 		baseMetricValueScores[BaseMetric.AVAILABILITY],
 };
 
+/**
+ * Calculates the numeric value for the PrivilegesRequired metric based on the provided values.
+ * @param value - The value of the PrivilegesRequired metric.
+ * @param scopeValue - The value of the Scope metric.
+ * @returns The numeric value for the PrivilegesRequired metric.
+ * @throws {Error} If the provided scopeValue is not "U" or "C".
+ * @throws {Error} If the provided value is not "N", "L", or "H".
+ */
 const getPrivilegesRequiredNumericValue = (
 	value: MetricValue,
 	scopeValue: MetricValue,
@@ -95,6 +114,13 @@ const getPrivilegesRequiredNumericValue = (
 	}
 };
 
+/**
+ * Retrieves the value of a metric from the metrics map.
+ * @param metric - The metric to retrieve the value for.
+ * @param metricsMap - The map containing the metrics and their values.
+ * @returns The value of the metric.
+ * @throws Error if the metric is missing in the metrics map.
+ */
 const getMetricValue = (
 	metric: Metric,
 	metricsMap: Map<Metric, MetricValue>,
@@ -106,6 +132,13 @@ const getMetricValue = (
 	return metricsMap.get(metric) as BaseMetricValue;
 };
 
+/**
+ * Calculates the numeric value for a given metric based on the provided metrics map.
+ * @param metric The metric for which the numeric value needs to be calculated.
+ * @param metricsMap The map containing the metrics and their corresponding values.
+ * @returns The numeric value of the metric.
+ * @throws Error if the metric score is missing or if the metric value is unknown.
+ */
 const getMetricNumericValue = (
 	metric: Metric,
 	metricsMap: Map<Metric, MetricValue>,
@@ -150,7 +183,15 @@ const getMetricNumericValue = (
 	return numericValue;
 };
 
-// ISS = 1 - [ (1 - Confidentiality) × (1 - Integrity) × (1 - Availability) ]
+/**
+ * Calculates the Impact Subscore (ISS) based on the provided metrics.
+ *
+ * @param metricsMap - A map containing the metrics and their corresponding values.
+ * @returns The calculated Impact Subscore (ISS).
+ *
+ * @remarks
+ *  ISS = 1 - [ (1 - Confidentiality) × (1 - Integrity) × (1 - Availability) ]
+ */
 export const calculateIss = (metricsMap: Map<Metric, MetricValue>): number => {
 	const confidentiality = getMetricNumericValue(
 		BaseMetric.CONFIDENTIALITY,
@@ -165,8 +206,17 @@ export const calculateIss = (metricsMap: Map<Metric, MetricValue>): number => {
 	return 1 - (1 - confidentiality) * (1 - integrity) * (1 - availability);
 };
 
-// https://www.first.org/cvss/v3.1/specification-document#7-3-Environmental-Metrics-Equations
-// MISS = Minimum ( 1 - [ (1 - ConfidentialityRequirement × ModifiedConfidentiality) × (1 - IntegrityRequirement × ModifiedIntegrity) × (1 - AvailabilityRequirement × ModifiedAvailability) ], 0.915)
+/**
+ * Calculates the miss factor based on the given metrics map.
+ *
+ * @param metricsMap - The map of metrics and their corresponding values.
+ * @returns The calculated miss factor.
+ *
+ * @see https://www.first.org/cvss/v3.1/specification-document#7-3-Environmental-Metrics-Equations
+ *
+ * @remarks
+ * MISS = Minimum ( 1 - [ (1 - ConfidentialityRequirement × ModifiedConfidentiality) × (1 - IntegrityRequirement × ModifiedIntegrity) × (1 - AvailabilityRequirement × ModifiedAvailability) ], 0.915)
+ */
 export const calculateMiss = (metricsMap: Map<Metric, MetricValue>): number => {
 	const rConfidentiality = getMetricNumericValue(
 		EnvironmentalMetric.CONFIDENTIALITY_REQUIREMENT,
@@ -204,10 +254,19 @@ export const calculateMiss = (metricsMap: Map<Metric, MetricValue>): number => {
 	);
 };
 
-// https://www.first.org/cvss/v3.1/specification-document#7-1-Base-Metrics-Equations
-// Impact =
-//   If Scope is Unchanged 	6.42 × ISS
-//   If Scope is Changed 	7.52 × (ISS - 0.029) - 3.25 × (ISS - 0.02)^15
+/**
+ * Calculates the impact score based on the given metrics map and ISS value.
+ * @param metricsMap - The map containing the metrics and their values.
+ * @param iss - The ISS (Impact Subscore) value.
+ * @returns The calculated impact score.
+ *
+ * @see https://www.first.org/cvss/v3.1/specification-document#7-1-Base-Metrics-Equations
+ *
+ * @remarks
+ * Impact =
+ *  If Scope is Unchanged 	6.42 × ISS
+ * 	If Scope is Changed 	7.52 × (ISS - 0.029) - 3.25 × (ISS - 0.02)^15
+ */
 export const calculateImpact = (
 	metricsMap: Map<Metric, MetricValue>,
 	iss: number,
@@ -216,12 +275,24 @@ export const calculateImpact = (
 		? 6.42 * iss
 		: 7.52 * (iss - 0.029) - 3.25 * (iss - 0.02) ** 15;
 
-// https://www.first.org/cvss/v3.1/specification-document#7-3-Environmental-Metrics-Equations
-// ModifiedImpact =
-// If ModifiedScope is Unchanged	6.42 × MISS
-// If ModifiedScope is Changed	7.52 × (MISS - 0.029) - 3.25 × (MISS × 0.9731 - 0.02)^13
-// ModifiedExploitability =	8.22 × ModifiedAttackVector × ModifiedAttackComplexity × ModifiedPrivilegesRequired × ModifiedUserInteraction
-// Note : Math.pow is 15 in 3.0 but 13 in 3.1
+/**
+ * Calculates the modified impact score based on the provided metrics, miss value, and version string.
+ *
+ * @param metricsMap - A map containing the metrics and their corresponding values.
+ * @param miss - The miss value.
+ * @param versionStr - The version string.
+ * @returns The calculated modified impact score.
+ *
+ * @see https://www.first.org/cvss/v3.1/specification-document#7-3-Environmental-Metrics-Equations
+ *
+ * @remarks
+ * ModifiedImpact =
+ * If ModifiedScope is Unchanged 	6.42 × MISS
+ * If ModifiedScope is Changed 	7.52 × (MISS - 0.029) - 3.25 × (MISS × 0.9731 - 0.02)^13
+ *
+ * ModifiedExploitability = 8.22 × ModifiedAttackVector × ModifiedAttackComplexity × ModifiedPrivilegesRequired × ModifiedUserInteraction
+ * Note: Math.pow is 15 in 3.0 but 13 in 3.1
+ */
 export const calculateModifiedImpact = (
 	metricsMap: Map<Metric, MetricValue>,
 	miss: number,
@@ -234,8 +305,16 @@ export const calculateModifiedImpact = (
 				(miss * (versionStr === "3.0" ? 1 : 0.9731) - 0.02) **
 					(versionStr === "3.0" ? 15 : 13);
 
-// https://www.first.org/cvss/v3.1/specification-document#7-1-Base-Metrics-Equations
-// Exploitability = 8.22 × AttackVector × AttackComplexity × PrivilegesRequired × UserInteraction
+/**
+ * Calculates the exploitability score based on the provided metrics.
+ * @param metricsMap - A map containing the metrics and their corresponding values.
+ * @returns The calculated exploitability score.
+ *
+ * @see https://www.first.org/cvss/v3.1/specification-document#7-1-Base-Metrics-Equations
+ *
+ * @remarks
+ * Exploitability = 8.22 × AttackVector × AttackComplexity × PrivilegesRequired × UserInteraction
+ */
 export const calculateExploitability = (
 	metricsMap: Map<Metric, MetricValue>,
 ): number =>
@@ -245,8 +324,16 @@ export const calculateExploitability = (
 	getMetricNumericValue(BaseMetric.PRIVILEGES_REQUIRED, metricsMap) *
 	getMetricNumericValue(BaseMetric.USER_INTERACTION, metricsMap);
 
-// https://www.first.org/cvss/v3.1/specification-document#7-3-Environmental-Metrics-Equations
-// Exploitability = 8.22 × ModifiedAttackVector × ModifiedAttackComplexity × ModifiedPrivilegesRequired × ModifiedUserInteraction
+/**
+ * Calculates the modified exploitability score based on the provided metrics.
+ * @param metricsMap - A map containing the metrics and their corresponding values.
+ * @returns The calculated modified exploitability score.
+ *
+ * @see https://www.first.org/cvss/v3.1/specification-document#7-3-Environmental-Metrics-Equations
+ *
+ * @remarks
+ * Exploitability = 8.22 × ModifiedAttackVector × ModifiedAttackComplexity × ModifiedPrivilegesRequired × ModifiedUserInteraction
+ */
 export const calculateModifiedExploitability = (
 	metricsMap: Map<Metric, MetricValue>,
 ): number =>
@@ -268,7 +355,13 @@ export const calculateModifiedExploitability = (
 		metricsMap,
 	);
 
-// https://www.first.org/cvss/v3.1/specification-document#Appendix-A---Floating-Point-Rounding
+/**
+ * Rounds up a number to the nearest tenth.
+ * @param input - The number to round up.
+ * @returns The rounded up number.
+ *
+ * @see https://www.first.org/cvss/v3.1/specification-document#Appendix-A---Floating-Point-Rounding
+ */
 const roundUp = (input: number): number => {
 	const intInput = Math.round(input * 100000);
 
@@ -277,6 +370,10 @@ const roundUp = (input: number): number => {
 		: (Math.floor(intInput / 10000) + 1) / 10;
 };
 
+/**
+ * Map of modified metrics.
+ * @type {Object<string, BaseMetric>}
+ */
 export const modifiedMetricsMap: { [key: string]: BaseMetric } = {
 	MAV: BaseMetric.ATTACK_VECTOR,
 	MAC: BaseMetric.ATTACK_COMPLEXITY,
@@ -288,16 +385,18 @@ export const modifiedMetricsMap: { [key: string]: BaseMetric } = {
 	MA: BaseMetric.AVAILABILITY,
 };
 
-// When Modified Temporal metric value is 'Not Defined' ('X'), which is the default value,
-// then Base metric value should be used.
+/**
+ * Populates the missing temporal metric values in the given metrics map with "X" as the default value.
+ * @param metricsMap - The map of metrics and their corresponding values.
+ * @returns The updated metrics map with missing temporal metric values populated.
+ *
+ * @remarks
+ * If the temporal metric value is "X", then the corresponding base metric value is used.
+ * If the base metric value is also "X", then the modified metric value is set to "X".
+ */
 export const populateTemporalMetricDefaults = (
 	metricsMap: Map<Metric, MetricValue>,
 ): Map<Metric, MetricValue> => {
-	// [...temporalMetrics].forEach((metric) => {
-	// 	if (!metricsMap.has(metric)) {
-	// 		metricsMap.set(metric, "X");
-	// 	}
-	// });
 	for (const metric of temporalMetrics) {
 		if (!metricsMap.has(metric)) {
 			metricsMap.set(metric, "X");
@@ -307,23 +406,16 @@ export const populateTemporalMetricDefaults = (
 	return metricsMap;
 };
 
+/**
+ * Populates the missing environmental metric values with default values.
+ * If a metric value is "X", it is replaced with the corresponding modified metric value if available.
+ * @param metricsMap - The map of metrics and their values.
+ * @returns The updated map of metrics with default values populated.
+ * @throws Error if a modified metric is missing for a given metric.
+ */
 export const populateEnvironmentalMetricDefaults = (
 	metricsMap: Map<Metric, MetricValue>,
 ): Map<Metric, MetricValue> => {
-	// [...environmentalMetrics].forEach((metric: EnvironmentalMetric) => {
-	// 	if (!metricsMap.has(metric)) {
-	// 		metricsMap.set(metric, "X");
-	// 	}
-
-	// 	if (metricsMap.get(metric) === "X") {
-	// 		metricsMap.set(
-	// 			metric,
-	// 			metricsMap.has(modifiedMetricsMap[metric])
-	// 				? (metricsMap.get(modifiedMetricsMap[metric]) as MetricValue)
-	// 				: "X",
-	// 		);
-	// 	}
-	// });
 	for (const metric of environmentalMetrics) {
 		if (!metricsMap.has(metric)) {
 			metricsMap.set(metric, "X");
@@ -380,16 +472,31 @@ export const calculateBaseResult = (cvssString: string): ScoreResult => {
 	};
 };
 
+/**
+ * Calculates the base score for a given CVSS string.
+ *
+ * @param cvssString - The CVSS string to calculate the base score for.
+ * @returns The calculated base score.
+ */
 export const calculateBaseScore = (cvssString: string): number => {
 	const { score } = calculateBaseResult(cvssString);
 
 	return score;
 };
 
-// https://www.first.org/cvss/v3.1/specification-document#7-3-Environmental-Metrics-Equations
-// If ModifiedImpact <= 0 =>	0; else
-// If ModifiedScope is Unchanged =>	Roundup (Roundup [Minimum ([ModifiedImpact + ModifiedExploitability], 10)] × ExploitCodeMaturity × RemediationLevel × ReportConfidence)
-// If ModifiedScope is Changed =>	Roundup (Roundup [Minimum (1.08 × [ModifiedImpact + ModifiedExploitability], 10)] × ExploitCodeMaturity × RemediationLevel × ReportConfidence)
+/**
+ * Calculates the environmental result based on the provided CVSS string.
+ * @param cvssString - The CVSS string to calculate the result for.
+ * @returns The score result object containing the calculated score, metrics map, impact, and exploitability.
+ * @throws Error if the version is not found.
+ *
+ * @see https://www.first.org/cvss/v3.1/specification-document#7-3-Environmental-Metrics-Equations
+ *
+ * @remarks
+ * If ModifiedImpact <= 0 => 0; else
+ * If ModifiedScope is Unchanged => Roundup (Roundup [Minimum ([ModifiedImpact + ModifiedExploitability], 10)] × ExploitCodeMaturity × RemediationLevel × ReportConfidence)
+ * If ModifiedScope is Changed => Roundup (Roundup [Minimum (1.08 × [ModifiedImpact + ModifiedExploitability], 10)] × ExploitCodeMaturity × RemediationLevel × ReportConfidence)
+ */
 export const calculateEnvironmentalResult = (
 	cvssString: string,
 ): ScoreResult => {
@@ -454,14 +561,28 @@ export const calculateEnvironmentalResult = (
 	};
 };
 
+/**
+ * Calculates the environmental score based on the provided CVSS string.
+ * @param cvssString - The CVSS string representing the vulnerability.
+ * @returns The environmental score.
+ */
 export const calculateEnvironmentalScore = (cvssString: string): number => {
 	const { score } = calculateEnvironmentalResult(cvssString);
 
 	return score;
 };
 
-// https://www.first.org/cvss/v3.1/specification-document#7-2-Temporal-Metrics-Equations
-// 	Roundup (BaseScore × ExploitCodeMaturity × RemediationLevel × ReportConfidence)
+/**
+ * Calculates the temporal result of a CVSS score.
+ *
+ * @param cvssString - The CVSS string representing the score.
+ * @returns The calculated temporal score result.
+ *
+ * @see https://www.first.org/cvss/v3.1/specification-document#7-2-Temporal-Metrics-Equations
+ *
+ * @remarks
+ * TemporalScore = Roundup (BaseScore × ExploitCodeMaturity × RemediationLevel × ReportConfidence)
+ */
 export const calculateTemporalResult = (cvssString: string): ScoreResult => {
 	let { metricsMap } = validate(cvssString);
 	// populate temp metrics if not provided
@@ -484,6 +605,11 @@ export const calculateTemporalResult = (cvssString: string): ScoreResult => {
 	};
 };
 
+/**
+ * Calculates the temporal score for a given CVSS string.
+ * @param cvssString - The CVSS string representing the vulnerability.
+ * @returns The temporal score calculated for the vulnerability.
+ */
 export const calculateTemporalScore = (cvssString: string): number => {
 	const { score } = calculateTemporalResult(cvssString);
 

@@ -1,5 +1,10 @@
 import { BaseMetric, type Metric, type MetricValue } from "./models.ts";
 
+/**
+ * Humanizes the base metric by converting it to a more readable string representation.
+ * @param metric - The base metric to be humanized.
+ * @returns The humanized string representation of the base metric.
+ */
 export const humanizeBaseMetric = (metric: Metric): string => {
 	switch (metric) {
 		case BaseMetric.ATTACK_VECTOR:
@@ -23,7 +28,13 @@ export const humanizeBaseMetric = (metric: Metric): string => {
 	}
 };
 
-// eslint-disable-next-line complexity
+/**
+ * Humanizes the base metric value.
+ *
+ * @param value - The metric value to be humanized.
+ * @param metric - The metric type.
+ * @returns The humanized string representation of the metric value.
+ */
 export const humanizeBaseMetricValue = (
 	value: MetricValue,
 	metric: Metric,

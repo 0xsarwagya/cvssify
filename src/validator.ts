@@ -129,9 +129,6 @@ export type ValidationResult = {
 	versionStr: string | undefined;
 };
 
-/**
- * Validate that the given string is a valid cvss vector
- */
 export const validate = (cvssStr: string): ValidationResult => {
 	if (!cvssStr?.startsWith("CVSS:")) {
 		throw new Error('CVSS vector must start with "CVSS:"');
