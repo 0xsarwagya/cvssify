@@ -1,0 +1,28 @@
+{
+	"version": "0.2",
+	"language": "en",
+	"words": [
+		"cvss",
+		"Cvssify",
+		"degit",
+		"esbuild",
+		"Exploitability",
+		"octocat",
+		"outdir",
+		"Repobeats",
+		"rmrf",
+		"ryansonshine",
+		"Sarwagya",
+		"SIEM",
+		"socio",
+		"tsdoc"
+	],
+	"flagWords": [],
+	"ignorePaths": [
+		"package.json",
+		"package-lock.json",
+		"yarn.lock",
+		"tsconfig.json",
+		"node_modules/**"
+	]
+}
