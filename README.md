@@ -2,16 +2,18 @@
   <h3 align="center">
 	CVSSify
   </h3>
+  <hr />
 	<div align="center">
 	<img src="https://img.shields.io/github/actions/workflow/status/0xsarwagya/cvssify/.github%2Fworkflows%2Fcvssify.yml" style="padding-top: 15px;" />
     <img src="https://img.shields.io/github/contributors/0xsarwagya/cvssify" style="padding-top: 15px;" />
     <img src="https://img.shields.io/github/issues-raw/0xsarwagya/cvssify" style="padding-top: 15px;" />
     <img src="https://img.shields.io/github/v/release/0xsarwagya/cvssify?include_prereleases" style="padding-top: 15px;" />
     <img src="https://img.shields.io/npm/dw/cvssify" style="padding-top: 15px;" />
-		</div>
+	</div>
+  	<hr />
   <p align="center">
     <a href="https://www.npmjs.com/package/cvssify">
-        <img src='./.github/assets/icon.png' height="100px" width="100px">
+        <img src='https://raw.githubusercontent.com/0xsarwagya/cvssify/main/.github/assets/icon.png' height="100px" width="100px">
     </a>
   </p>
 
